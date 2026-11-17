@@ -1,1 +1,57 @@
-{% extends "base.html" %}{% block content %}<div class="quad"><section class="panel"><div class="panel__head"><h2>异常裁决</h2></div>{{table(data.rows,['date','coverage_hours','residual','code','state'])}}</section><section class="panel"><div class="panel__head"><h2>复核水账</h2><span>V{{result.version}}</span></div><form id="review-form" data-run="{{result.manifest.run_id}}" data-version="{{result.version}}"><label>决定<select name="decision"><option>通过</option><option>退回</option></select></label><button class="btn primary">保存复核</button></form><div class="review-state">{{result.review}}</div></section></div>{% endblock %}
+{% extends "base.html" %}{% block content %}
+<div class="quad">
+  <section class="panel">
+    <div class="panel__head"><h2>异常裁决</h2></div>
+    {{table(data.rows,['date','coverage_hours','residual','code','state'])}}
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>复核水账</h2><span>V{{result.version}}</span></div>
+    <form id="review-form" data-run="{{result.manifest.run_id}}" data-version="{{result.version}}">
+      <label>决定<select name="decision"><option>通过</option><option>退回</option></select></label>
+      <button class="btn primary">保存复核</button>
+    </form>
+    <div class="review-state">{{result.review}}</div>
+  </section>
+  <section class="panel wide">
+    <div class="panel__head"><h2>补传修订办理</h2><span>基于批次 {{result.manifest.run_id[:12]}}</span></div>
+    <form id="revision-form" data-base="{{result.manifest.run_id}}">
+      <label>补传测次 CSV（同站同刻按测次版本裁决）<textarea name="text" spellcheck="false" placeholder="id,station,time,level,inflow,outflow,flow_unit,version"></textarea></label>
+      <button class="btn primary">办理补传并重算</button>
+    </form>
+    <div id="revision-message" class="review-state"></div>
+  </section>
+  <section class="panel wide">
+    <div class="panel__head"><h2>补传任务与现行日账</h2><span>现行：{{(active_run_id or '未切换')[:16]}}</span></div>
+    <div class="scroll"><table class="ledger">
+      <thead><tr><th>任务</th><th>原批次</th><th>检查点</th><th>状态</th><th>替代批次</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for job in revision_jobs %}
+        <tr>
+          <td><code>{{job.id[:12]}}</code></td>
+          <td><code>{{job.base_run_id[:12]}}</code></td>
+          <td>{{job.checkpoint}}/{{job.steps|length}} {{job.step_titles.get(job.step,'')}}</td>
+          <td><span class="tag {% if job.open_conflicts %}warn{% endif %}">{{job.status}}</span></td>
+          <td>{% if job.candidate_run_id %}<a href="/m/6?run={{job.candidate_run_id}}"><code>{{job.candidate_run_id[:12]}}</code></a>{% else %}—{% endif %}</td>
+          <td><button class="btn js-job" data-job="{{job.id}}">查看</button></td>
+        </tr>
+      {% else %}<tr><td colspan="6">当前没有补传任务。</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="panel wide" id="job-detail" hidden>
+    <div class="panel__head"><h2>补传明细</h2><span id="job-id"></span></div>
+    <h3>受影响日</h3><div id="job-days" class="coverage"></div>
+    <h3>按日变化</h3>
+    <div class="scroll"><table class="ledger" id="job-changes"><thead><tr><th>测站</th><th>日期</th><th>变化</th><th>字段</th><th>旧值 → 新值</th></tr></thead><tbody></tbody></table></div>
+    <h3>待裁决栏（同版本冲突）</h3>
+    <div id="job-conflicts"></div>
+    <h3>留痕</h3>
+    <div id="job-evidence" class="coverage"></div>
+    <form id="candidate-form" hidden>
+      <label>复核决定<select name="decision"><option>通过</option><option>退回</option></select></label>
+      <button class="btn primary">保存替代批次复核</button>
+    </form>
+    <button class="btn primary" id="switch-btn" hidden>切换为现行日账</button>
+  </section>
+</div>
+{% endblock %}

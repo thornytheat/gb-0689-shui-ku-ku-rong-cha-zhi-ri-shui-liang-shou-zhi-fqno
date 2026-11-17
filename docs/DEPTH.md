@@ -14,6 +14,7 @@
 | M4 库容换算 | 按曲线分段换算库容 | `/api/m4` | `app/modules/m4_storage/rules.py` `app/modules/m4_storage/service.py` | `tests/test_m4_storage.py` |
 | M5 日收支 | 跨午夜切分日水量账 | `/api/m5` | `app/modules/m5_budget/rules.py` `app/modules/m5_budget/service.py` | `tests/test_m5_budget.py` |
 | M6 异常复核 | 按缺测优先裁决超差 | `/api/m6` | `app/modules/m6_review/rules.py` `app/modules/m6_review/service.py` | `tests/test_m6_review.py` |
+| M6 补传修订 | 版本裁决派生替代日账、待裁决冲突、检查点续跑、现行切换 | `/api/revision/<run_id>` | `app/modules/m6_review/revision_rules.py` `app/modules/m6_review/revision_service.py` | `tests/test_m6_revision_rules.py` `tests/test_m6_revision_service.py` `tests/test_m6_revision_http.py` |
 | M7 重算留痕 | 核对总积分与重算水位 | `/api/m7` | `app/modules/m7_trace/rules.py` `app/modules/m7_trace/service.py` | `tests/test_m7_trace.py` |
 
 ## 陷阱登记
@@ -28,6 +29,10 @@
 | TRAP-14 | 同刻水文矛盾 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m2_curve/rules.py` | `tests/test_m2_curve.py::test_real_conflict` |
 | TRAP-15 | 升每秒换算 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m2_curve/rules.py` | `tests/test_m2_curve.py::test_unit_conversion` |
 | TRAP-23 | 午夜切分 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m5_budget/rules.py` | `tests/test_m5_budget.py::test_midnight_split` |
+| TRAP-31 | 补传旧修订倒写 | 直接覆盖现行值，丢失已复核记录 | 版本裁决+留痕，迟到旧修订 STALE 不重算 | `app/modules/m6_review/revision_rules.py` | `tests/test_m6_revision_service.py::test_late_old_revision_kept_out_of_current` |
+| TRAP-32 | 同版冲突自动取值 | 静默选一条污染日账 | 待裁决栏人工选定，未裁决不得切换 | `app/modules/m6_review/revision_rules.py` | `tests/test_m6_revision_http.py::test_conflict_adjudication_then_switch_http` |
+| TRAP-33 | 中断重算丢进度 | 全量冻结或重复落库 | 六步检查点确认，续跑从已确认进度恢复 | `app/modules/m6_review/revision_service.py` | `tests/test_m6_revision_service.py::test_resume_from_confirmed_checkpoint` |
+| TRAP-34 | 切换中途失败 | 现行账指向半成品 | 单行指针单事务+乐观锁，失败保留旧版 | `app/store.py` | `tests/test_m6_revision_service.py::test_switch_requires_review_and_keeps_old_on_failure` |
 
 ## 对账规则
 

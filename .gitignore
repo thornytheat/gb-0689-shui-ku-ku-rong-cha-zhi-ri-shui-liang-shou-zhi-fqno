@@ -29,3 +29,5 @@ target/
 *.o
 *.obj
 .DS_Store
+# 本地 SQLite 运行数据（容器内使用 DATA_DIR 命名卷）
+/data/

@@ -17,5 +17,9 @@ def run(raw=None, params=None, stop=7, persist=True):
     ctx.pop("source",None);ctx.pop("raw",None)
     result=serial(ctx);result["manifest"]=make(raw,actual);result["elapsed_ms"]=round((perf_counter()-t)*1000,3)
     result["version"]=1;result["review"]="待复核"
-    if persist and stop==7: return store.save(result)
+    if persist and stop==7:
+        saved=store.save(result)
+        # 原始凭证随批次留存，供补传修订派生替代日账；原凭证内容不可变
+        store.save_source(saved["manifest"]["run_id"],raw)
+        return saved
     return result

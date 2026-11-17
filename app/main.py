@@ -53,6 +53,17 @@ def create_app():
             writer.writerow([result["manifest"]["run_id"],row.get("_line",""),row.get("id",row.get("event_id","")),"PASS",json.dumps(serial(row),ensure_ascii=False)])
         for row in result["quarantine"]:
             writer.writerow([result["manifest"]["run_id"],row["line"],row["key"],row["code"],json.dumps(row,ensure_ascii=False)])
+        # 替代日账：补传留痕随该批次版本固定导出；原批次不含此块，原貌不变
+        revision=result.get("revision")
+        if revision:
+            writer.writerow([])
+            writer.writerow(["补传任务",revision["job_id"],"原批次",revision["base_run_id"],"摘要",revision["digest"]])
+            for label,items in (("迟到旧修订",revision.get("stale_revisions",[])),("旧版替代",revision.get("superseded",[])),
+                                ("重复测次",revision.get("duplicates",[])),("待裁决冲突",revision.get("open_conflicts",[]))):
+                for item in items:
+                    writer.writerow([revision["job_id"],item.get("line",""),item.get("key",item.get("station","")),item.get("code",label),json.dumps(serial(item),ensure_ascii=False)])
+            for change in revision.get("day_changes",[]):
+                writer.writerow([revision["job_id"],"",f"{change['station']} {change['date']}","日变化",json.dumps(serial(change),ensure_ascii=False)])
         return Response("\ufeff"+stream.getvalue(),content_type="text/csv; charset=utf-8",headers={"Content-Disposition":"attachment; filename=evidence.csv"})
     for n,name in enumerate(STAGES,1): app.register_blueprint(import_module(f"app.modules.m{n}_{name}.handler").bp)
     return app
